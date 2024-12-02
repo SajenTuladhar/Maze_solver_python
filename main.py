@@ -1,4 +1,4 @@
-import tkinter as tk  #tk as alias
+import tkinter as tk  
 from tkinter import filedialog, messagebox
 import pygame
 from PIL import Image, ImageOps
@@ -50,9 +50,20 @@ class MazeApp:
     def clear_canvas(self):
         self.canvas.delete("all")
         
+    def process_image(self, filepath):
+        #convert image to grayscale and binary
+        image = Image.open(filepath)
+        gray_image = ImageOps.grayscale(image)
+        binary_image = gray_image.point(lambda p: 255 if p> 128 else 0, '1')
+        binary_image.save("processed_maze.png")
+        self.show_image("processed_maze.png")
         
-        #and this :end 
-        #self.root.mainloop() # keeps the GUI open until the user closes it 
+    def show_image(self, filepath):
+        img= tk.PhotoImage(file=filepath)
+        self.canvas.create_image(0,0, anchor= tk.NW, image= img)
+        self.root.mainloop()        
+        
+        
         
     
     
