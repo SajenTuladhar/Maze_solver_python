@@ -10,9 +10,9 @@ class MazeApp:
          #everything in the GUI is in between this :start
         self.root = root #creates the main GUI window
         self.root.title("Maze Solver")
-        self.canvas_width= 1910 
-        self.canvas_height= 1080 
-        self.gridsize = 20
+        self.canvas_width= 600 
+        self.canvas_height= 400 
+        self.grid_size = 20
         
         
         button_frame = tk.Frame(root)
@@ -42,7 +42,9 @@ class MazeApp:
             self.process_image(filepath)
     
     def draw_maze(self):
-        pass
+        if not self.pygame_initialized:
+            self.init_pygame()
+        self.run_pygame()
 
     def solve_maze(self):
         pass
@@ -62,6 +64,35 @@ class MazeApp:
         img= tk.PhotoImage(file=filepath)
         self.canvas.create_image(0,0, anchor= tk.NW, image= img)
         self.root.mainloop()        
+    
+    def init_pygame(self):
+        pygame.init()
+        self.pygame_initialized = True
+    
+    def run_pygame(self):
+        pygame.display.set_caption('maze solver') 
+        screen= pygame.display.set_mode((self.canvas_width,self.canvas_height))
+        screen.fill((255,255,255))  
+        
+        #grid logic
+        for x in range(0, self.canvas_width,self.grid_size):
+            for y in range(0, self.canvas_height, self.grid_size):
+                rect= pygame.Rect(x,y, self.grid_size,self.grid_size)
+                pygame.draw.rect(screen,(200,200,200),rect,1)
+                
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running= False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+                    rect_x = (x // self.grid_size)*self.grid_size
+                    rect_y = (y // self.grid_size)*self.grid_size
+                    pygame.draw.rect(screen, (0,0,0), (rect_x,rect_y,self.grid_size,self.grid_size))
+            
+            pygame.display.flip()
+        pygame.quit()
         
         
         
