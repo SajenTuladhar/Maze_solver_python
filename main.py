@@ -1,7 +1,7 @@
-import tkinter  as tk  #tk as alias
+import tkinter as tk  #tk as alias
 from tkinter import filedialog, messagebox
-from tkinter import ttk  #ttk themed tkinter widgets
 import pygame
+from PIL import Image, ImageOps
 
         
 
@@ -10,8 +10,8 @@ class MazeApp:
          #everything in the GUI is in between this :start
         self.root = root #creates the main GUI window
         self.root.title("Maze Solver")
-        self.canvas_width= 600  
-        self.canvas_height= 400 
+        self.canvas_width= 1910 
+        self.canvas_height= 1080 
         self.gridsize = 20
         
         
@@ -24,7 +24,14 @@ class MazeApp:
         tk.Button(button_frame, text="Draw Maze", command=self.draw_maze).grid(row=0, column=1, padx=5)
         tk.Button(button_frame, text="Solve Maze", command=self.solve_maze).grid(row=0, column=2, padx=5)
         tk.Button(button_frame, text="Clear", command=self.clear_canvas).grid(row=0, column=3, padx=5)
-
+        
+        #Canvas to displaying mazes
+        self.canvas = tk.Canvas(root, width= self.canvas_width, height=self.canvas_height, bg="white")
+        self.canvas.pack(pady=10)
+        
+        
+        # Initialize pygame for interactive grid
+        self.pygame_initialized = False
         
         
         
@@ -45,7 +52,7 @@ class MazeApp:
         
         
         #and this :end 
-        self.root.mainloop() # keeps the GUI open until the user closes it 
+        #self.root.mainloop() # keeps the GUI open until the user closes it 
         
     
     
