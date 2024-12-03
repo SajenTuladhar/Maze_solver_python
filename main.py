@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import pygame
 from PIL import Image, ImageOps
-
+from algorithm import bfs
         
 
 class MazeApp:
@@ -47,8 +47,40 @@ class MazeApp:
         self.run_pygame()
 
     def solve_maze(self):
-        pass
-
+        rows = self.canvas_height // self.grid_size
+        colums = self.canvas_width // self.grid_size
+        
+        #convert the canvas to a binary grid
+        maze= [[1]* colums for _ in range(rows)] #initialize all cells as walls(1)
+        
+        for item in self.canvas.find_all():
+            cords = self.canvas.coords(item)
+            if len(cords)== 4: #if the item is a rectangle
+                x1,y1,x2,y2 = cords
+                row= int(y1//self.grid_size)
+                col= int(x1//self.grid_size)
+                maze[row][col] = 0 # Mark it as a path(0)
+                
+        #define start and end points
+        start = (0,0) # replace with user input or a predefined point
+        end = (rows -1 , colums -1) # replace with user input or a predefined point
+        
+        #call the BFS function
+        path = bfs(maze,start,end)
+        
+        #visualize the path if found
+        if path:
+            for (row, col)in path:
+                x1 = col * self.grid_size
+                y1 = row * self.grid_size
+                x2 = x1 + self.grid_size
+                y2 = y1 + self.grid_size
+                self.canvas.create_rectangle(x1,y1,x2,y2,fill="red") #highlight the path
+            messagebox.showinfo("Maze solver", "Path found")
+        else:
+            messagebox.showinfo("MazeSolver","No path found")
+                
+                
     def clear_canvas(self):
         self.canvas.delete("all")
         
@@ -60,9 +92,23 @@ class MazeApp:
         binary_image.save("processed_maze.png")
         self.show_image("processed_maze.png")
         
+        #convert binary image to 2D grid
+        width, height = binary_image.size
+        pixels = binary_image.load()
+        self.grid = [[1 if pixels[x,y]==255 else 0 for x in range (width)] for y in range (height)]
+        
+        #resize the canvas to match the image
+        self.canvas_width= width
+        self.canvas_height= height
+        self.canvas.config(width=self.canvas_width,height=self.canvas_height)
+        
+        self.show_image(filepath)
+        #self.show_image("processed_maze.png")
+  
+        
     def show_image(self, filepath):
-        img= tk.PhotoImage(file=filepath)
-        self.canvas.create_image(0,0, anchor= tk.NW, image= img)
+        self.img= tk.PhotoImage(file=filepath)
+        self.canvas.create_image(0,0, anchor= tk.NW, image=self.img)
         self.root.mainloop()        
     
     def init_pygame(self):
@@ -87,16 +133,14 @@ class MazeApp:
                     running= False
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     x, y = pygame.mouse.get_pos()
+                    
                     rect_x = (x // self.grid_size)*self.grid_size
                     rect_y = (y // self.grid_size)*self.grid_size
                     pygame.draw.rect(screen, (0,0,0), (rect_x,rect_y,self.grid_size,self.grid_size))
             
             pygame.display.flip()
         pygame.quit()
-        
-        
-        
-    
+       
     
 
 if __name__ =="__main__": #ensures the following code runs only if the script is executed directly (not imported as module)
