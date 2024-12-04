@@ -6,7 +6,7 @@ from collections import deque
 GRID_SIZE = 20
 CELL_SIZE = 30
 WINDOW_WIDTH = GRID_SIZE * CELL_SIZE
-WINDOW_HEIGHT = GRID_SIZE * CELL_SIZE + 50  # Extra space for buttons
+WINDOW_HEIGHT = GRID_SIZE * CELL_SIZE + 90  # Extra space for buttons
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -14,6 +14,7 @@ GRAY = (200, 200, 200)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
+YELLOW = (255, 255, 0)
 
 # Initialize Pygame
 pygame.init()
@@ -24,6 +25,7 @@ font = pygame.font.SysFont(None, 30)
 # Create the maze grid
 maze = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
 start, end = (0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)
+current_mode = None  # Modes: "start", "end", or None
 
 def draw_grid():
     """Draw the grid and the cells."""
@@ -42,16 +44,28 @@ def draw_buttons():
     save_button = pygame.Rect(10, GRID_SIZE * CELL_SIZE + 10, 80, 30)
     solve_button = pygame.Rect(100, GRID_SIZE * CELL_SIZE + 10, 80, 30)
     reset_button = pygame.Rect(190, GRID_SIZE * CELL_SIZE + 10, 80, 30)
+    start_button = pygame.Rect(280, GRID_SIZE * CELL_SIZE + 10, 100, 30)
+    end_button = pygame.Rect(390, GRID_SIZE * CELL_SIZE + 10, 100, 30)
 
     pygame.draw.rect(screen, BLUE, save_button)
     pygame.draw.rect(screen, GREEN, solve_button)
     pygame.draw.rect(screen, RED, reset_button)
+    pygame.draw.rect(screen, YELLOW, start_button)
+    pygame.draw.rect(screen, YELLOW, end_button)
 
     screen.blit(font.render("Save", True, WHITE), (25, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Solve", True, WHITE), (115, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Reset", True, WHITE), (205, GRID_SIZE * CELL_SIZE + 15))
+    screen.blit(font.render("Set Start", True, BLACK), (290, GRID_SIZE * CELL_SIZE + 15))
+    screen.blit(font.render("Set End", True, BLACK), (400, GRID_SIZE * CELL_SIZE + 15))
 
-    return save_button, solve_button, reset_button
+    return save_button, solve_button, reset_button, start_button, end_button
+
+def draw_mode_label():
+    """Display the current mode on the screen."""
+    mode_label = f"Mode: {'Set Start' if current_mode == 'start' else 'Set End' if current_mode == 'end' else 'Draw Walls'}"
+    label_surface = font.render(mode_label, True, BLACK)
+    screen.blit(label_surface, (10, GRID_SIZE * CELL_SIZE + 50))
 
 def bfs(start, end):
     """Perform BFS to find the shortest path."""
@@ -88,7 +102,8 @@ solving = False
 while running:
     screen.fill(WHITE)
     draw_grid()
-    save_btn, solve_btn, reset_btn = draw_buttons()
+    save_btn, solve_btn, reset_btn, start_btn, end_btn = draw_buttons()
+    draw_mode_label()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -99,7 +114,14 @@ while running:
             grid_x, grid_y = x // CELL_SIZE, y // CELL_SIZE
 
             if y < GRID_SIZE * CELL_SIZE:  # Clicked inside the grid
-                maze[grid_y][grid_x] = 1 - maze[grid_y][grid_x]
+                if current_mode == "start":
+                    start = (grid_y, grid_x)
+                    current_mode = None  # Exit Set Start mode
+                elif current_mode == "end":
+                    end = (grid_y, grid_x)
+                    current_mode = None  # Exit Set End mode
+                else:
+                    maze[grid_y][grid_x] = 1 - maze[grid_y][grid_x]
 
             elif save_btn.collidepoint(x, y):  # Save button clicked
                 with open("maze.json", "w") as f:
@@ -111,7 +133,14 @@ while running:
 
             elif reset_btn.collidepoint(x, y):  # Reset button clicked
                 maze = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+                start, end = (0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)
                 solving = False
+
+            elif start_btn.collidepoint(x, y):  # Set Start button clicked
+                current_mode = "start"
+
+            elif end_btn.collidepoint(x, y):  # Set End button clicked
+                current_mode = "end"
 
     if solving:
         path = bfs(start, end)
