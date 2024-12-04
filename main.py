@@ -1,149 +1,129 @@
-import tkinter as tk  
-from tkinter import filedialog, messagebox
 import pygame
-from PIL import Image, ImageOps
-from algorithm import bfs
-        
+import json
+from collections import deque
 
-class MazeApp:
-    def __init__(self,root): # constructor method< initialzies class , is automatically called>
-         #everything in the GUI is in between this :start
-        self.root = root #creates the main GUI window
-        self.root.title("Maze Solver")
-        self.canvas_width= 600 
-        self.canvas_height= 400 
-        self.grid_size = 20
-        
-        
-        button_frame = tk.Frame(root)
-        button_frame.pack(pady=10)
-        button_frame.pack(side="bottom", pady=10)
+# Constants
+GRID_SIZE = 20
+CELL_SIZE = 30
+WINDOW_WIDTH = GRID_SIZE * CELL_SIZE
+WINDOW_HEIGHT = GRID_SIZE * CELL_SIZE + 50  # Extra space for buttons
 
-        #buttons
-        tk.Button(button_frame, text="Upload Maze", command=self.upload_maze).grid(row=0, column=0, padx=5)
-        tk.Button(button_frame, text="Draw Maze", command=self.draw_maze).grid(row=0, column=1, padx=5)
-        tk.Button(button_frame, text="Solve Maze", command=self.solve_maze).grid(row=0, column=2, padx=5)
-        tk.Button(button_frame, text="Clear", command=self.clear_canvas).grid(row=0, column=3, padx=5)
-        
-        #Canvas to displaying mazes
-        self.canvas = tk.Canvas(root, width= self.canvas_width, height=self.canvas_height, bg="white")
-        self.canvas.pack(pady=10)
-        
-        
-        # Initialize pygame for interactive grid
-        self.pygame_initialized = False
-        
-        
-        
-        
-    def upload_maze(self):
-         filepath = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
-         if filepath:
-            self.process_image(filepath)
-    
-    def draw_maze(self):
-        if not self.pygame_initialized:
-            self.init_pygame()
-        self.run_pygame()
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
 
-    def solve_maze(self):
-        rows = self.canvas_height // self.grid_size
-        colums = self.canvas_width // self.grid_size
-        
-        #convert the canvas to a binary grid
-        maze= [[1]* colums for _ in range(rows)] #initialize all cells as walls(1)
-        
-        for item in self.canvas.find_all():
-            cords = self.canvas.coords(item)
-            if len(cords)== 4: #if the item is a rectangle
-                x1,y1,x2,y2 = cords
-                row= int(y1//self.grid_size)
-                col= int(x1//self.grid_size)
-                maze[row][col] = 0 # Mark it as a path(0)
-                
-        #define start and end points
-        start = (0,0) # replace with user input or a predefined point
-        end = (rows -1 , colums -1) # replace with user input or a predefined point
-        
-        #call the BFS function
-        path = bfs(maze,start,end)
-        
-        #visualize the path if found
+# Initialize Pygame
+pygame.init()
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+pygame.display.set_caption("Maze Drawer and Solver")
+font = pygame.font.SysFont(None, 30)
+
+# Create the maze grid
+maze = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+start, end = (0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)
+
+def draw_grid():
+    """Draw the grid and the cells."""
+    for y in range(GRID_SIZE):
+        for x in range(GRID_SIZE):
+            color = WHITE if maze[y][x] == 0 else BLACK
+            pygame.draw.rect(screen, color, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+            pygame.draw.rect(screen, GRAY, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)
+
+    # Highlight start and end
+    pygame.draw.rect(screen, BLUE, (start[1] * CELL_SIZE, start[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    pygame.draw.rect(screen, RED, (end[1] * CELL_SIZE, end[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+def draw_buttons():
+    """Draw control buttons."""
+    save_button = pygame.Rect(10, GRID_SIZE * CELL_SIZE + 10, 80, 30)
+    solve_button = pygame.Rect(100, GRID_SIZE * CELL_SIZE + 10, 80, 30)
+    reset_button = pygame.Rect(190, GRID_SIZE * CELL_SIZE + 10, 80, 30)
+
+    pygame.draw.rect(screen, BLUE, save_button)
+    pygame.draw.rect(screen, GREEN, solve_button)
+    pygame.draw.rect(screen, RED, reset_button)
+
+    screen.blit(font.render("Save", True, WHITE), (25, GRID_SIZE * CELL_SIZE + 15))
+    screen.blit(font.render("Solve", True, WHITE), (115, GRID_SIZE * CELL_SIZE + 15))
+    screen.blit(font.render("Reset", True, WHITE), (205, GRID_SIZE * CELL_SIZE + 15))
+
+    return save_button, solve_button, reset_button
+
+def bfs(start, end):
+    """Perform BFS to find the shortest path."""
+    queue = deque([start])
+    visited = {start}
+    parent = {}
+
+    while queue:
+        current = queue.popleft()
+        if current == end:
+            path = []
+            while current in parent:
+                path.append(current)
+                current = parent[current]
+            return path[::-1]
+
+        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            nx, ny = current[0] + dx, current[1] + dy
+            if 0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE and (nx, ny) not in visited and maze[nx][ny] == 0:
+                queue.append((nx, ny))
+                visited.add((nx, ny))
+                parent[(nx, ny)] = current
+
+        # Visualization step
+        draw_grid()
+        pygame.draw.rect(screen, GREEN, (current[1] * CELL_SIZE, current[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+        pygame.display.flip()
+        pygame.time.delay(30)
+    return None
+
+# Main game loop
+running = True
+solving = False
+while running:
+    screen.fill(WHITE)
+    draw_grid()
+    save_btn, solve_btn, reset_btn = draw_buttons()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            x, y = pygame.mouse.get_pos()
+            grid_x, grid_y = x // CELL_SIZE, y // CELL_SIZE
+
+            if y < GRID_SIZE * CELL_SIZE:  # Clicked inside the grid
+                maze[grid_y][grid_x] = 1 - maze[grid_y][grid_x]
+
+            elif save_btn.collidepoint(x, y):  # Save button clicked
+                with open("maze.json", "w") as f:
+                    json.dump(maze, f)
+                print("Maze saved!")
+
+            elif solve_btn.collidepoint(x, y):  # Solve button clicked
+                solving = True
+
+            elif reset_btn.collidepoint(x, y):  # Reset button clicked
+                maze = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+                solving = False
+
+    if solving:
+        path = bfs(start, end)
         if path:
-            for (row, col)in path:
-                x1 = col * self.grid_size
-                y1 = row * self.grid_size
-                x2 = x1 + self.grid_size
-                y2 = y1 + self.grid_size
-                self.canvas.create_rectangle(x1,y1,x2,y2,fill="red") #highlight the path
-            messagebox.showinfo("Maze solver", "Path found")
+            for x, y in path:
+                pygame.draw.rect(screen, GREEN, (y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+                pygame.display.flip()
+                pygame.time.delay(50)
         else:
-            messagebox.showinfo("MazeSolver","No path found")
-                
-                
-    def clear_canvas(self):
-        self.canvas.delete("all")
-        
-    def process_image(self, filepath):
-        #convert image to grayscale and binary
-        image = Image.open(filepath)
-        gray_image = ImageOps.grayscale(image)
-        binary_image = gray_image.point(lambda p: 255 if p> 128 else 0, '1')
-        binary_image.save("processed_maze.png")
-        self.show_image("processed_maze.png")
-        
-        #convert binary image to 2D grid
-        width, height = binary_image.size
-        pixels = binary_image.load()
-        self.grid = [[1 if pixels[x,y]==255 else 0 for x in range (width)] for y in range (height)]
-        
-        #resize the canvas to match the image
-        self.canvas_width= width
-        self.canvas_height= height
-        self.canvas.config(width=self.canvas_width,height=self.canvas_height)
-        
-        self.show_image(filepath)
-        #self.show_image("processed_maze.png")
-  
-        
-    def show_image(self, filepath):
-        self.img= tk.PhotoImage(file=filepath)
-        self.canvas.create_image(0,0, anchor= tk.NW, image=self.img)
-        self.root.mainloop()        
-    
-    def init_pygame(self):
-        pygame.init()
-        self.pygame_initialized = True
-    
-    def run_pygame(self):
-        pygame.display.set_caption('maze solver') 
-        screen= pygame.display.set_mode((self.canvas_width,self.canvas_height))
-        screen.fill((255,255,255))  
-        
-        #grid logic
-        for x in range(0, self.canvas_width,self.grid_size):
-            for y in range(0, self.canvas_height, self.grid_size):
-                rect= pygame.Rect(x,y, self.grid_size,self.grid_size)
-                pygame.draw.rect(screen,(200,200,200),rect,1)
-                
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running= False
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    x, y = pygame.mouse.get_pos()
-                    
-                    rect_x = (x // self.grid_size)*self.grid_size
-                    rect_y = (y // self.grid_size)*self.grid_size
-                    pygame.draw.rect(screen, (0,0,0), (rect_x,rect_y,self.grid_size,self.grid_size))
-            
-            pygame.display.flip()
-        pygame.quit()
-       
-    
+            print("No path found!")
+        solving = False
 
-if __name__ =="__main__": #ensures the following code runs only if the script is executed directly (not imported as module)
-    root = tk.Tk()
-    app= MazeApp(root)
-    root.mainloop() 
+    pygame.display.flip()
+
+pygame.quit()
