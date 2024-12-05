@@ -1,11 +1,12 @@
 import pygame
+import random
 from collections import deque
 from tkinter import filedialog, Tk
 from PIL import Image
 
 # Constants
-GRID_SIZE = 20
-CELL_SIZE = 30
+GRID_SIZE = 30
+CELL_SIZE = 20
 WINDOW_WIDTH = GRID_SIZE * CELL_SIZE
 WINDOW_HEIGHT = GRID_SIZE * CELL_SIZE + 130  # Extra space for buttons
 
@@ -29,6 +30,7 @@ maze = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
 start, end = (0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)
 current_mode = None  # Modes: "start", "end", or None
 
+
 def draw_grid():
     """Draw the grid and the cells."""
     for y in range(GRID_SIZE):
@@ -46,12 +48,14 @@ def draw_grid():
     pygame.draw.rect(screen, BLUE, (start[1] * CELL_SIZE, start[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
     pygame.draw.rect(screen, RED, (end[1] * CELL_SIZE, end[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
+
 def draw_buttons():
     """Draw control buttons."""
     save_button = pygame.Rect(10, GRID_SIZE * CELL_SIZE + 10, 80, 30)
     solve_button = pygame.Rect(100, GRID_SIZE * CELL_SIZE + 10, 80, 30)
     reset_button = pygame.Rect(190, GRID_SIZE * CELL_SIZE + 10, 80, 30)
     upload_button = pygame.Rect(280, GRID_SIZE * CELL_SIZE + 10, 100, 30)
+    random_button = pygame.Rect(390, GRID_SIZE * CELL_SIZE + 10, 180, 30)
     start_button = pygame.Rect(10, GRID_SIZE * CELL_SIZE + 50, 100, 30)
     end_button = pygame.Rect(120, GRID_SIZE * CELL_SIZE + 50, 100, 30)
 
@@ -59,6 +63,7 @@ def draw_buttons():
     pygame.draw.rect(screen, BLACK, solve_button)
     pygame.draw.rect(screen, RED, reset_button)
     pygame.draw.rect(screen, BLACK, upload_button)
+    pygame.draw.rect(screen, BLACK, random_button)
     pygame.draw.rect(screen, BLUE, start_button)
     pygame.draw.rect(screen, BLUE, end_button)
 
@@ -66,10 +71,11 @@ def draw_buttons():
     screen.blit(font.render("Solve", True, WHITE), (115, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Reset", True, WHITE), (205, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Upload", True, WHITE), (295, GRID_SIZE * CELL_SIZE + 15))
+    screen.blit(font.render("Random Maze", True, WHITE), (405, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Set Start", True, BLACK), (20, GRID_SIZE * CELL_SIZE + 55))
     screen.blit(font.render("Set End", True, BLACK), (130, GRID_SIZE * CELL_SIZE + 55))
 
-    return save_button, solve_button, reset_button, upload_button, start_button, end_button
+    return save_button, solve_button, reset_button, upload_button, random_button, start_button, end_button
 
 def upload_image():
     """Upload and process an image into the maze grid."""
@@ -103,7 +109,18 @@ def upload_image():
         print("Maze updated from image.")
     except Exception as e:
         print("Error processing image:", e)
-        
+def generate_random_maze():
+    """Generate a random maze with random start and end points."""
+    global maze, start, end
+
+    # Reset the maze and randomly fill cells
+    maze = [[random.choice([0, 1]) for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+
+    # Ensure the start and end are walkable
+    start = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+    end = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+    maze[start[0]][start[1]] = 0
+    maze[end[0]][end[1]] = 0
 
 
 def bfs(start, end):
@@ -135,13 +152,14 @@ def bfs(start, end):
         pygame.time.delay(50)
     return None
 
+
 # Main game loop
 running = True
 solving = False
 while running:
     screen.fill(WHITE)
     draw_grid()
-    save_btn, solve_btn, reset_btn, upload_btn, start_btn, end_btn = draw_buttons()
+    save_btn, solve_btn, reset_btn, upload_btn, random_btn, start_btn, end_btn = draw_buttons()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -178,6 +196,9 @@ while running:
 
             elif upload_btn.collidepoint(x, y):  # Upload button clicked
                 upload_image()
+
+            elif random_btn.collidepoint(x, y):  # Random Maze button clicked
+                generate_random_maze()
 
             elif start_btn.collidepoint(x, y):  # Set Start button clicked
                 current_mode = "start"
