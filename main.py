@@ -1,12 +1,13 @@
 import pygame
-import json
 from collections import deque
+from tkinter import filedialog, Tk
+from PIL import Image
 
 # Constants
 GRID_SIZE = 20
 CELL_SIZE = 30
 WINDOW_WIDTH = GRID_SIZE * CELL_SIZE
-WINDOW_HEIGHT = GRID_SIZE * CELL_SIZE + 90  # Extra space for buttons
+WINDOW_HEIGHT = GRID_SIZE * CELL_SIZE + 130  # Extra space for buttons
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -14,7 +15,8 @@ GRAY = (200, 200, 200)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
-YELLOW = (255, 255, 0)
+
+solved_path = []
 
 # Initialize Pygame
 pygame.init()
@@ -35,6 +37,11 @@ def draw_grid():
             pygame.draw.rect(screen, color, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
             pygame.draw.rect(screen, GRAY, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)
 
+    # Highlight the solved path
+    if solved_path:
+        for x, y in solved_path:
+            pygame.draw.rect(screen, GREEN, (y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
     # Highlight start and end
     pygame.draw.rect(screen, BLUE, (start[1] * CELL_SIZE, start[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
     pygame.draw.rect(screen, RED, (end[1] * CELL_SIZE, end[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
@@ -44,28 +51,60 @@ def draw_buttons():
     save_button = pygame.Rect(10, GRID_SIZE * CELL_SIZE + 10, 80, 30)
     solve_button = pygame.Rect(100, GRID_SIZE * CELL_SIZE + 10, 80, 30)
     reset_button = pygame.Rect(190, GRID_SIZE * CELL_SIZE + 10, 80, 30)
-    start_button = pygame.Rect(280, GRID_SIZE * CELL_SIZE + 10, 100, 30)
-    end_button = pygame.Rect(390, GRID_SIZE * CELL_SIZE + 10, 100, 30)
+    upload_button = pygame.Rect(280, GRID_SIZE * CELL_SIZE + 10, 100, 30)
+    start_button = pygame.Rect(10, GRID_SIZE * CELL_SIZE + 50, 100, 30)
+    end_button = pygame.Rect(120, GRID_SIZE * CELL_SIZE + 50, 100, 30)
 
-    pygame.draw.rect(screen, BLUE, save_button)
-    pygame.draw.rect(screen, GREEN, solve_button)
+    pygame.draw.rect(screen, BLACK, save_button)
+    pygame.draw.rect(screen, BLACK, solve_button)
     pygame.draw.rect(screen, RED, reset_button)
-    pygame.draw.rect(screen, YELLOW, start_button)
-    pygame.draw.rect(screen, YELLOW, end_button)
+    pygame.draw.rect(screen, BLACK, upload_button)
+    pygame.draw.rect(screen, BLUE, start_button)
+    pygame.draw.rect(screen, BLUE, end_button)
 
     screen.blit(font.render("Save", True, WHITE), (25, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Solve", True, WHITE), (115, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Reset", True, WHITE), (205, GRID_SIZE * CELL_SIZE + 15))
-    screen.blit(font.render("Set Start", True, BLACK), (290, GRID_SIZE * CELL_SIZE + 15))
-    screen.blit(font.render("Set End", True, BLACK), (400, GRID_SIZE * CELL_SIZE + 15))
+    screen.blit(font.render("Upload", True, WHITE), (295, GRID_SIZE * CELL_SIZE + 15))
+    screen.blit(font.render("Set Start", True, BLACK), (20, GRID_SIZE * CELL_SIZE + 55))
+    screen.blit(font.render("Set End", True, BLACK), (130, GRID_SIZE * CELL_SIZE + 55))
 
-    return save_button, solve_button, reset_button, start_button, end_button
+    return save_button, solve_button, reset_button, upload_button, start_button, end_button
 
-def draw_mode_label():
-    """Display the current mode on the screen."""
-    mode_label = f"Mode: {'Set Start' if current_mode == 'start' else 'Set End' if current_mode == 'end' else 'Draw Walls'}"
-    label_surface = font.render(mode_label, True, BLACK)
-    screen.blit(label_surface, (10, GRID_SIZE * CELL_SIZE + 50))
+def upload_image():
+    """Upload and process an image into the maze grid."""
+    Tk().withdraw()  # Hide the Tkinter root window
+    filepath = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+
+    if not filepath:
+        print("No file selected!")
+        return
+
+    try:
+        # Load the image and convert it to grayscale
+        img = Image.open(filepath).convert("L")
+        print("Image loaded successfully:", filepath)
+
+        # Resize the image to match the grid size
+        img = img.resize((GRID_SIZE, GRID_SIZE))
+        img_data = img.load()
+
+        # Map the grayscale pixels to the maze grid
+        for y in range(GRID_SIZE):
+            for x in range(GRID_SIZE):
+                pixel = img_data[x, y]
+                maze[y][x] = 1 if pixel < 128 else 0  # Threshold for binarization
+
+        # Debug: Print the maze grid to verify the conversion
+        print("Maze grid (1 = wall, 0 = path):")
+        for row in maze:
+            print(row)
+
+        print("Maze updated from image.")
+    except Exception as e:
+        print("Error processing image:", e)
+        
+
 
 def bfs(start, end):
     """Perform BFS to find the shortest path."""
@@ -93,7 +132,7 @@ def bfs(start, end):
         draw_grid()
         pygame.draw.rect(screen, GREEN, (current[1] * CELL_SIZE, current[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
         pygame.display.flip()
-        pygame.time.delay(30)
+        pygame.time.delay(50)
     return None
 
 # Main game loop
@@ -102,8 +141,7 @@ solving = False
 while running:
     screen.fill(WHITE)
     draw_grid()
-    save_btn, solve_btn, reset_btn, start_btn, end_btn = draw_buttons()
-    draw_mode_label()
+    save_btn, solve_btn, reset_btn, upload_btn, start_btn, end_btn = draw_buttons()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -116,17 +154,18 @@ while running:
             if y < GRID_SIZE * CELL_SIZE:  # Clicked inside the grid
                 if current_mode == "start":
                     start = (grid_y, grid_x)
-                    current_mode = None  # Exit Set Start mode
+                    current_mode = None
                 elif current_mode == "end":
                     end = (grid_y, grid_x)
-                    current_mode = None  # Exit Set End mode
+                    current_mode = None
                 else:
                     maze[grid_y][grid_x] = 1 - maze[grid_y][grid_x]
 
             elif save_btn.collidepoint(x, y):  # Save button clicked
-                with open("maze.json", "w") as f:
-                    json.dump(maze, f)
-                print("Maze saved!")
+                print("Current Maze:")
+                for row in maze:
+                    print(row)
+                print("Maze printed to console instead of saving.")
 
             elif solve_btn.collidepoint(x, y):  # Solve button clicked
                 solving = True
@@ -134,7 +173,11 @@ while running:
             elif reset_btn.collidepoint(x, y):  # Reset button clicked
                 maze = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
                 start, end = (0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)
+                solved_path.clear()
                 solving = False
+
+            elif upload_btn.collidepoint(x, y):  # Upload button clicked
+                upload_image()
 
             elif start_btn.collidepoint(x, y):  # Set Start button clicked
                 current_mode = "start"
@@ -145,10 +188,11 @@ while running:
     if solving:
         path = bfs(start, end)
         if path:
+            solved_path[:] = path
             for x, y in path:
                 pygame.draw.rect(screen, GREEN, (y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE))
                 pygame.display.flip()
-                pygame.time.delay(50)
+                pygame.time.delay(80)
         else:
             print("No path found!")
         solving = False
