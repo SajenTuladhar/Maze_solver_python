@@ -109,6 +109,7 @@ def upload_image():
         print("Maze updated from image.")
     except Exception as e:
         print("Error processing image:", e)
+        
 def generate_random_maze():
     """Generate a random maze with random start and end points."""
     global maze, start, end
@@ -121,6 +122,32 @@ def generate_random_maze():
     end = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
     maze[start[0]][start[1]] = 0
     maze[end[0]][end[1]] = 0
+
+def save_maze_as_image():
+    """Save the maze as a PNG image."""
+    img = Image.new("RGB", (GRID_SIZE, GRID_SIZE), WHITE)
+    pixels = img.load()
+
+    # Map the maze grid to the image pixels
+    for y in range(GRID_SIZE):
+        for x in range(GRID_SIZE):
+            pixels[x, y] = BLACK if maze[y][x] == 1 else WHITE
+
+    # Highlight start and end points
+    pixels[start[1], start[0]] = (0, 0, 255)  # Blue for start
+    pixels[end[1], end[0]] = (255, 0, 0)  # Red for end
+
+    # Resize the image for better visibility and save
+    img = img.resize((GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE), Image.NEAREST)
+    save_path = filedialog.asksaveasfilename(
+        defaultextension=".png",
+        filetypes=[("PNG files", "*.png")],
+        title="Save Maze As Image"
+    )
+    if save_path:
+        img.save(save_path)
+        print(f"Maze saved as: {save_path}")
+
 
 
 def bfs(start, end):
@@ -180,10 +207,7 @@ while running:
                     maze[grid_y][grid_x] = 1 - maze[grid_y][grid_x]
 
             elif save_btn.collidepoint(x, y):  # Save button clicked
-                print("Current Maze:")
-                for row in maze:
-                    print(row)
-                print("Maze printed to console instead of saving.")
+                save_maze_as_image()
 
             elif solve_btn.collidepoint(x, y):  # Solve button clicked
                 solving = True
