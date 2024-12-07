@@ -22,7 +22,7 @@ solved_path = []
 # Initialize Pygame
 pygame.init()
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-pygame.display.set_caption("Maze Drawer and Solver")
+pygame.display.set_caption("Maze Solver")
 font = pygame.font.SysFont(None, 30)
 
 # Create the maze grid
@@ -64,16 +64,16 @@ def draw_buttons():
     pygame.draw.rect(screen, RED, reset_button)
     pygame.draw.rect(screen, BLACK, upload_button)
     pygame.draw.rect(screen, BLACK, random_button)
-    pygame.draw.rect(screen, BLUE, start_button)
-    pygame.draw.rect(screen, BLUE, end_button)
+    pygame.draw.rect(screen, BLACK, start_button)
+    pygame.draw.rect(screen, BLACK, end_button)
 
     screen.blit(font.render("Save", True, WHITE), (25, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Solve", True, WHITE), (115, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Reset", True, WHITE), (205, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Upload", True, WHITE), (295, GRID_SIZE * CELL_SIZE + 15))
     screen.blit(font.render("Random Maze", True, WHITE), (405, GRID_SIZE * CELL_SIZE + 15))
-    screen.blit(font.render("Set Start", True, BLACK), (20, GRID_SIZE * CELL_SIZE + 55))
-    screen.blit(font.render("Set End", True, BLACK), (130, GRID_SIZE * CELL_SIZE + 55))
+    screen.blit(font.render("Set Start", True, WHITE), (20, GRID_SIZE * CELL_SIZE + 55))
+    screen.blit(font.render("Set End", True, WHITE), (130, GRID_SIZE * CELL_SIZE + 55))
 
     return save_button, solve_button, reset_button, upload_button, random_button, start_button, end_button
 
@@ -149,9 +149,8 @@ def save_maze_as_image():
         print(f"Maze saved as: {save_path}")
 
 
-
 def bfs(start, end):
-    """Perform BFS to find the shortest path."""
+    """Perform BFS to find the shortest path with visualization."""
     queue = deque([start])
     visited = {start}
     parent = {}
@@ -172,11 +171,11 @@ def bfs(start, end):
                 visited.add((nx, ny))
                 parent[(nx, ny)] = current
 
-        # Visualization step
+        # Visualization step: Draw each cell as it's visited
         draw_grid()
         pygame.draw.rect(screen, GREEN, (current[1] * CELL_SIZE, current[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
         pygame.display.flip()
-        pygame.time.delay(50)
+        pygame.time.delay(100)  # Adjust the delay for speed
     return None
 
 
@@ -193,20 +192,10 @@ while running:
             running = False
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            x, y = pygame.mouse.get_pos()
+            x, y = event.pos
             grid_x, grid_y = x // CELL_SIZE, y // CELL_SIZE
 
-            if y < GRID_SIZE * CELL_SIZE:  # Clicked inside the grid
-                if current_mode == "start":
-                    start = (grid_y, grid_x)
-                    current_mode = None
-                elif current_mode == "end":
-                    end = (grid_y, grid_x)
-                    current_mode = None
-                else:
-                    maze[grid_y][grid_x] = 1 - maze[grid_y][grid_x]
-
-            elif save_btn.collidepoint(x, y):  # Save button clicked
+            if save_btn.collidepoint(x, y):  # Save button clicked
                 save_maze_as_image()
 
             elif solve_btn.collidepoint(x, y):  # Solve button clicked
@@ -226,9 +215,21 @@ while running:
 
             elif start_btn.collidepoint(x, y):  # Set Start button clicked
                 current_mode = "start"
+                start = (grid_y, grid_x)
 
             elif end_btn.collidepoint(x, y):  # Set End button clicked
                 current_mode = "end"
+                end = (grid_y, grid_x)
+
+            else:
+                if current_mode == "start":
+                    start = (grid_y, grid_x)
+                    current_mode = None
+                elif current_mode == "end":
+                    end = (grid_y, grid_x)
+                    current_mode = None
+                else:
+                    maze[grid_y][grid_x] = 1 - maze[grid_y][grid_x]
 
     if solving:
         path = bfs(start, end)
